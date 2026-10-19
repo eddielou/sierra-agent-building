@@ -1,0 +1,19 @@
+{
+  "name": "sierra-outfitters-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "chat": "tsx src/chat.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openai": "^7.39.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
