@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CATALOG_PATH, ORDERS_PATH } from "../src/config.js";
 import { ProductCatalog } from "../src/catalog.js";
 import { OrderStore } from "../src/orders.js";
-import { EarlyRisersPromo } from "../src/promo.js";
+import { EarlyRisersPromo, pacificTimeToday } from "../src/promo.js";
 
 // Pacific Daylight Time (UTC-7) on 2026-10-19: 9:00 AM PT == 16:00 UTC.
 const pacific = (hour: number, minute = 0) =>
@@ -52,5 +52,30 @@ describe("early risers promo", () => {
     const code = (id: string) => (p.requestCode(id) as { code: string }).code;
     expect(code("a")).not.toBe(code("b"));
     expect(code("a")).toBe(code("a"));
+  });
+});
+
+describe("pacificTimeToday", () => {
+  it("maps Pacific wall-clock times to UTC across DST", () => {
+    const summer = new Date("2026-10-19T20:00:00Z"); // 1 PM PDT
+    const winter = new Date("2026-12-01T20:00:00Z"); // noon PST
+    expect(pacificTimeToday("09:00", summer).toISOString()).toBe("2026-10-19T16:00:00.000Z");
+    expect(pacificTimeToday("18:01", winter).toISOString()).toBe("2026-12-02T02:01:00.000Z");
+    expect(pacificTimeToday("7:59", summer).toISOString()).toBe("2026-10-19T14:59:00.000Z");
+  });
+
+  it("uses the Pacific date, not the UTC date", () => {
+    const lateUtc = new Date("2026-10-20T03:00:00Z"); // 8 PM PDT on Oct 19
+    expect(pacificTimeToday("09:00", lateUtc).toISOString()).toBe("2026-10-19T16:00:00.000Z");
+  });
+
+  it("rejects malformed times", () => {
+    expect(() => pacificTimeToday("25:00")).toThrow();
+    expect(() => pacificTimeToday("9am")).toThrow();
+  });
+
+  it("feeds the promo window check", () => {
+    const at = (t: string) => new EarlyRisersPromo(() => pacificTimeToday(t)).isActive();
+    expect([at("07:59"), at("08:00"), at("09:59"), at("10:00"), at("18:01")]).toEqual([false, true, true, false, false]);
   });
 });

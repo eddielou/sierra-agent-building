@@ -58,3 +58,35 @@ export class EarlyRisersPromo {
     }
   }
 }
+
+/** Milliseconds the Pacific wall clock is ahead of UTC at the given instant (negative for Pacific). */
+function pacificOffsetMs(instant: Date): number {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: config.PROMO_TIMEZONE,
+      year: "numeric", month: "numeric", day: "numeric",
+      hour: "numeric", minute: "numeric", second: "numeric",
+      hourCycle: "h23",
+    }).formatToParts(instant).map((part) => [part.type, Number(part.value)]),
+  );
+  const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+/**
+ * Turn a "HH:MM" Pacific wall-clock time on today's Pacific date into a Date.
+ * Used to mock the clock for manual testing (see MOCK_TIME in chat.ts).
+ */
+export function pacificTimeToday(hhmm: string, now: Date = new Date()): Date {
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(hhmm.trim());
+  if (!m) throw new Error(`Expected a time like 07:59 or 18:01, got: ${hhmm}`);
+  const [hour, minute] = [Number(m[1]), Number(m[2])];
+  const today = new Intl.DateTimeFormat("en-US", {
+    timeZone: config.PROMO_TIMEZONE, year: "numeric", month: "numeric", day: "numeric",
+  }).formatToParts(now);
+  const get = (t: string) => Number(today.find((x) => x.type === t)!.value);
+  const wallAsUtc = Date.UTC(get("year"), get("month") - 1, get("day"), hour, minute);
+  // Offset is looked up twice so the result is right even when the guess lands across a DST change.
+  const first = new Date(wallAsUtc - pacificOffsetMs(new Date(wallAsUtc)));
+  return new Date(wallAsUtc - pacificOffsetMs(first));
+}

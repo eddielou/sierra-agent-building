@@ -66,11 +66,12 @@ export function buildTools(
           // Deliberately vague: don't reveal whether the email or the order number was wrong.
           return { found: false, message: "No order matches that email and order number combination." };
         }
-        // Resolve SKUs to names; SKUs missing from the catalog are passed through unnamed.
+        // Pre-render a display_name per item so the model copies it verbatim instead of juggling
+        // SKUs and nulls (it once attached the wrong SKU to an unnamed item). SKUs missing from
+        // the catalog are shown as "item <SKU>".
         const { ProductsOrdered, ...rest } = order;
         const products = ((ProductsOrdered as string[] | undefined) ?? []).map((sku) => ({
-          sku,
-          name: (catalog.bySku(sku)?.ProductName as string | undefined) ?? null,
+          display_name: (catalog.bySku(sku)?.ProductName as string | undefined) ?? `item ${sku}`,
         }));
         return { found: true, order: { ...rest, products } };
       },

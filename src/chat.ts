@@ -1,6 +1,16 @@
 /** Interactive CLI: `npm run chat`. Type 'quit' to exit. */
 import { createInterface } from "node:readline";
-import { Agent, type TraceEvent } from "./agent.js";
+import { Agent, type TraceEvent } from "./llmAgent.js";
+import { EarlyRisersPromo, pacificTimeToday } from "./promo.js";
+
+/** MOCK_TIME (Pacific HH:MM, e.g. 07:59 or 18:01) pins the promo clock to that time today. */
+function promoFromEnv(): EarlyRisersPromo | undefined {
+  const raw = process.env.MOCK_TIME;
+  if (!raw) return undefined;
+  const fixed = pacificTimeToday(raw);
+  console.log(`⏰ Promo clock mocked to ${raw.trim()} Pacific today\n`);
+  return new EarlyRisersPromo(() => fixed);
+}
 
 const DEBUG_PREFIX = "/debug";
 const dim = (text: string) => `\x1b[2m${text}\x1b[0m`;
@@ -13,6 +23,9 @@ function printTrace(event: TraceEvent): void {
   } else if (event.type === "llm_response") {
     console.log(dim(`[debug] round ${event.round} · OpenAI response (${event.model}, finish=${event.finishReason})`));
     console.log(dim(JSON.stringify({ message: event.message, usage: event.usage }, null, 2)));
+  } else if (event.type === "validation") {
+    console.log(dim(`[debug] validation: ${event.report.results.length} validator(s) run`));
+    if (event.report.results.length) console.log(dim(JSON.stringify(event.report.results, null, 2)));
   } else {
     console.log(dim(`[debug] round ${event.round} · tool ${event.name}(${event.arguments}) → ${event.ms}ms`));
     console.log(dim(JSON.stringify(JSON.parse(event.result), null, 2)));
@@ -20,7 +33,7 @@ function printTrace(event: TraceEvent): void {
 }
 
 async function main(): Promise<void> {
-  const agent = Agent.create();
+  const agent = Agent.create({ promo: promoFromEnv() });
   console.log("🏔️  Sierra Outfitters Support (type 'quit' to exit, '/debug <message>' to trace a turn)\n");
   console.log("Agent: Welcome to Sierra Outfitters! Onward into the unknown 🌲 How can I help today?\n");
 

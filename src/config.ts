@@ -10,6 +10,8 @@ export const CATALOG_PATH = path.join(ROOT, "data", "ProductCatalog.json");
 export const MODEL = "gpt-4.1-mini";
 export const MAX_TOOL_ROUNDS = 6; // guard against runaway tool-call loops within a single user turn
 
+export const MAX_VALIDATION_RETRIES = 1; // regenerations allowed after a reply fails validation
+
 export const TRACKING_URL_TEMPLATE =
   "https://tools.usps.com/go/TrackConfirmAction?tLabels={trackingNumber}";
 
